@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"reflect"
+	"math"
 
 	"github.com/messagebird/sachet"
 	"github.com/messagebird/sachet/provider/aspsms"
@@ -44,6 +46,7 @@ func main() {
 	if err := LoadConfig(*configFile); err != nil {
 		log.Fatalf("Error loading configuration: %s", err)
 	}
+	log.Printf("%+v", config)
 
 	http.HandleFunc("/alert", func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -102,6 +105,16 @@ func main() {
 				text = "Alert \n" + strings.Join(data.CommonLabels.Values(), " | ")
 			}
 		}
+
+		//Val := reflect.ValueOf(config.Providers[receiverConf.Provider] 
+		log.Println(reflect.TypeOf(provider))
+		typef := reflect.TypeOf(provider)
+		fVal := reflect.New(typef)
+		log.Println(fVal)
+		log.Printf("%+v ", provider)
+		log.Println(provider.(typef.))
+		
+		
 
 		message := sachet.Message{
 			To:   receiverConf.To,
@@ -211,3 +224,23 @@ func errorHandler(w http.ResponseWriter, status int, err error, provider string)
 	log.Println("Error: " + json)
 	requestTotal.WithLabelValues(strconv.FormatInt(int64(status), 10), provider).Inc()
 }
+
+func splitByLength(text string, messageSize int) []string {
+    runeStr := []rune(text)
+    strLength := len(runeStr)
+    numChunks := int(math.Ceil(float64(strLength) / float64(messageSize)))
+
+    splited := make([]string, numChunks)
+
+    start,stop := 0,0
+    for i := 0; i < numChunks; i += 1 {
+        start = i * messageSize
+        stop = start + messageSize
+        if stop > strLength {
+            stop = strLength
+        }
+        splited[i] = string(runeStr[start : stop])
+    }
+    return splited
+}
+
